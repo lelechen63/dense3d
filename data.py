@@ -136,6 +136,7 @@ def read():
             neg_process = multiprocessing.Process(target=save_patches_3d,
                                                   args=(images, negative, 25, 25, 25, patch_path_neg))
             neg_process.start()
+            neg_process.join()
 
     print 'done'
 
