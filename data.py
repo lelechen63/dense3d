@@ -6,9 +6,10 @@ import matplotlib.pyplot as plt
 import random
 import pickle
 import shutil
+import time
 def parse_args():
 	parser = argparse.ArgumentParser()
-	#parser.add_argument('--root', dest='root', default='/media/lele/DATA/spie')
+	# parser.add_argument('--root', dest='root', default='/media/lele/DATA/spie')
 	parser.add_argument('--root', dest='root', default='/mnt/disk1/dat/lchen63/spie')
 	
 	parser.add_argument( '--normalization', dest='normalization', type=bool, default=False)
@@ -53,18 +54,17 @@ def read():
 	ff = []
 	for i in range(5):
 		temp = []
-		print '==================='
 
 		for k in range(i*len(persons)/5,(i+1)*len(persons)/5):
-			print persons[k]
 			shutil.copytree(persons[k], os.path.join(os.path.join(folder,'folder{}'.format(i+1)),persons[k].split('/')[-1]))
 			temp.append(os.path.join(os.path.join(folder,'folder{}'.format(i+1)),persons[k].split('/')[-1]))
-			if k % 2 == 0:
-				break
+			# if k % 2 == 0:
+			# 	break
 		ff.append(temp)
 		# break
 	data = []
 	for f_i in range(5):
+		t = time.time()
 		data_t = {}
 		data_t['positive'] = []
 		data_t['negtive'] = []
@@ -105,6 +105,7 @@ def read():
 
 		
 		negtive = whole - positive
+		print "negtive:{},positive:{}".format(len(negtive),len(positive))
 
 		p_p = os.path.join(path,'positive')
 		if not os.path.exists(p_p):
@@ -116,8 +117,8 @@ def read():
 			patch = images[center[0],:,max(center[1]-12,0):min(center[1]+13,images.shape[2]),max(center[2]-12,0):min(center[2]+13,images.shape[3]),max(center[3]-12,0):min(center[3]+13,images.shape[4])]
 			np.save(os.path.join(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1]),'{}_{}_{}.npy'.format(center[1],center[2],center[3])),patch)
 			data_t['positive'].append(os.path.join(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1]),'{}_{}_{}.npy'.format(center[1],center[2],center[3])))
-			# if len(data_t['positive'])==100:
-			# 	break
+			if len(data_t['positive'])==1000:
+				break
 		p_p = os.path.join(path,'negtive')
 
 		if not os.path.exists(p_p):
@@ -128,9 +129,10 @@ def read():
 			patch = images[center[0],:,max(center[1]-12,0):min(center[1]+13,images.shape[2]),max(center[2]-12,0):min(center[2]+13,images.shape[3]),max(center[3]-12,0):min(center[3]+13,images.shape[4])]
 			np.save(os.path.join(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1]),'{}_{}_{}.npy'.format(center[1],center[2],center[3])),patch)
 			data_t['negtive'].append(os.path.join(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1]),'{}_{}_{}.npy'.format(center[1],center[2],center[3])))
-			# if len(data_t['negtive'])==100:
-			# 	break
+			if len(data_t['negtive'])==1000:
+				break
 		data.append(data_t)
+		print 'Folder:	{}	time:	{}'.format(f_i,time.time()-t)
 
 
 	with open(os.path.join(config.root,'data.pkl'), 'wb') as handle:
