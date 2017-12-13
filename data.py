@@ -50,7 +50,6 @@ def read():
 	persons = HGG + LGG
 	# random.shuffle(persons)
 	# print persons
-	print len(persons)
 	ff = []
 	for i in range(5):
 		temp = []
@@ -58,21 +57,29 @@ def read():
 		for k in range(i*len(persons)/5,(i+1)*len(persons)/5):
 			shutil.copytree(persons[k], os.path.join(os.path.join(folder,'folder{}'.format(i+1)),persons[k].split('/')[-1]))
 			temp.append(os.path.join(os.path.join(folder,'folder{}'.format(i+1)),persons[k].split('/')[-1]))
-			# if k % 2 == 0:
+			# if k % 10 == 0:
 			# 	break
 		ff.append(temp)
 		# break
 	data = []
 	for f_i in range(5):
+
+		path = os.path.join(os.path.join(config.root,'patch'),'folder{}'.format(f_i+1))
+		if not os.path.exists(path):
+			os.mkdir(path)
+
 		t = time.time()
 		data_t = {}
 		data_t['positive'] = []
 		data_t['negtive'] = []
-		print f_i
 		images = np.ndarray(shape=(len(ff[f_i]),5,240,240,155))
+		positive = set()
+		negtive = set()
+		whole = set()
+		w = 0
+		p = 0
+		n = 0
 		for p,person in enumerate(ff[f_i]):
-			# print person
-			# print p
 			data = os.listdir(person)
 			for i in range(5):
 				images[p,i,:,:,:] = load_nii(os.path.join(person,data[i])).get_data()
@@ -81,62 +88,76 @@ def read():
 				# Brats17_TCIA_430_1_t1.nii.gz
 				# Brats17_TCIA_430_1_t1ce.nii.gz
 				# Brats17_TCIA_430_1_t2.nii.gz
-		# print images.shape
-		positive = set()
-		negtive = set()
-		whole = set()
-		# break
-
-
-		path = os.path.join(os.path.join(config.root,'patch'),'folder{}'.format(f_i+1))
-		if not os.path.exists(path):
-			os.mkdir(path)
-		for p in range(images.shape[0]):
-			
-
 			non_zero_coordinates= np.nonzero(images[p,1,:,:,:])
+			p += non_zero_coordinates[0].shape[0]
 			
 			for inx in range(non_zero_coordinates[0].shape[0]):
 				positive.add((p,non_zero_coordinates[0][inx],non_zero_coordinates[1][inx],non_zero_coordinates[2][inx]))
 
 			head = np.nonzero(images[p,0,:,:,:])
+			w += head[0].shape[0]
 			for inx in range(head[0].shape[0]):
 				whole.add((p,head[0][inx],head[1][inx],head[2][inx]))
+		# print images.shape
 
+		
+
+		
+		
 		
 		negtive = whole - positive
 		print "negtive:{},positive:{}".format(len(negtive),len(positive))
-
-		p_p = os.path.join(path,'positive')
+		print "n:{},p:{}".format(w - p ,p)
+		pos_p_p = os.path.join(path,'positive')
 		if not os.path.exists(p_p):
 			os.mkdir(p_p)
-		for center in positive:
-			if not os.path.exists(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1])):
-				os.mkdir(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1]))
-			# print center
-			patch = images[center[0],:,max(center[1]-12,0):min(center[1]+13,images.shape[2]),max(center[2]-12,0):min(center[2]+13,images.shape[3]),max(center[3]-12,0):min(center[3]+13,images.shape[4])]
-			np.save(os.path.join(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1]),'{}_{}_{}.npy'.format(center[1],center[2],center[3])),patch)
-			data_t['positive'].append(os.path.join(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1]),'{}_{}_{}.npy'.format(center[1],center[2],center[3])))
-			if len(data_t['positive'])==1000:
-				break
-		p_p = os.path.join(path,'negtive')
+		
+		
+		
+		process = multiprocessing.Process(target = patch_data,args = (positive,pos_p_p,ff[f_i],images,))
+        process.start()
+		# for center in positive:
+		# 	if not os.path.exists(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1])):
+		# 		os.mkdir(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1]))
+		# 	# print center
+		# 	patch = images[center[0],:,max(center[1]-12,0):min(center[1]+13,images.shape[2]),max(center[2]-12,0):min(center[2]+13,images.shape[3]),max(center[3]-12,0):min(center[3]+13,images.shape[4])]
+		# 	np.save(os.path.join(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1]),'{}_{}_{}.npy'.format(center[1],center[2],center[3])),patch)
+		# 	# data_t['positive'].append(os.path.join(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1]),'{}_{}_{}.npy'.format(center[1],center[2],center[3])))
+		# 	# if len(data_t['positive'])==10:
+		# 	# 	break
+		neg_p_p = os.path.join(path,'negtive')
 
 		if not os.path.exists(p_p):
 			os.mkdir(p_p)
-		for center in negtive:
-			if not os.path.exists(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1])):
-				os.mkdir(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1]))
-			patch = images[center[0],:,max(center[1]-12,0):min(center[1]+13,images.shape[2]),max(center[2]-12,0):min(center[2]+13,images.shape[3]),max(center[3]-12,0):min(center[3]+13,images.shape[4])]
-			np.save(os.path.join(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1]),'{}_{}_{}.npy'.format(center[1],center[2],center[3])),patch)
-			data_t['negtive'].append(os.path.join(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1]),'{}_{}_{}.npy'.format(center[1],center[2],center[3])))
-			if len(data_t['negtive'])==1000:
-				break
-		data.append(data_t)
+
+		process = multiprocessing.Process(target = patch_data,args = (negtive,neg_p_p,ff[f_i],images,))
+        process.start()
+
+		# for center in negtive:
+		# 	if not os.path.exists(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1])):
+		# 		os.mkdir(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1]))
+		# 	patch = images[center[0],:,max(center[1]-12,0):min(center[1]+13,images.shape[2]),max(center[2]-12,0):min(center[2]+13,images.shape[3]),max(center[3]-12,0):min(center[3]+13,images.shape[4])]
+		# 	np.save(os.path.join(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1]),'{}_{}_{}.npy'.format(center[1],center[2],center[3])),patch)
+			# data_t['negtive'].append(os.path.join(os.path.join(p_p,ff[f_i][center[0]].split('/')[-1]),'{}_{}_{}.npy'.format(center[1],center[2],center[3])))
+			# if len(data_t['negtive'])==10:
+			# 	break
+		# data.append(data_t)
 		print 'Folder:	{}	time:	{}'.format(f_i,time.time()-t)
 
 
 	with open(os.path.join(config.root,'data.pkl'), 'wb') as handle:
 		pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def patch_data(sets,p_p,ff_fi,images):
+	for center in sets:
+			if not os.path.exists(os.path.join(p_p,ff_fi[center[0]].split('/')[-1])):
+				os.mkdir(os.path.join(p_p,ff_fi[center[0]].split('/')[-1]))
+			# print center
+			patch = images[center[0],:,max(center[1]-12,0):min(center[1]+13,images.shape[2]),max(center[2]-12,0):min(center[2]+13,images.shape[3]),max(center[3]-12,0):min(center[3]+13,images.shape[4])]
+			np.save(os.path.join(os.path.join(p_p,ff_fi[center[0]].split('/')[-1]),'{}_{}_{}.npy'.format(center[1],center[2],center[3])),patch)
+			
+
 
 
 
