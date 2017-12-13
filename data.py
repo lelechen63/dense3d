@@ -77,7 +77,7 @@ def read():
 		negtive = set()
 		whole = set()
 		w = 0
-		p = 0
+		pos = 0
 		n = 0
 		for p,person in enumerate(ff[f_i]):
 			data = os.listdir(person)
@@ -89,7 +89,7 @@ def read():
 				# Brats17_TCIA_430_1_t1ce.nii.gz
 				# Brats17_TCIA_430_1_t2.nii.gz
 			non_zero_coordinates= np.nonzero(images[p,1,:,:,:])
-			p += non_zero_coordinates[0].shape[0]
+			pos += non_zero_coordinates[0].shape[0]
 			
 			for inx in range(non_zero_coordinates[0].shape[0]):
 				positive.add((p,non_zero_coordinates[0][inx],non_zero_coordinates[1][inx],non_zero_coordinates[2][inx]))
@@ -101,7 +101,7 @@ def read():
 
 		negtive = whole - positive
 		print "negtive:{},positive:{}".format(len(negtive),len(positive))
-		print "n:{},p:{}".format(w - p ,p)
+		print "n:{},p:{}".format(w - pos ,pos)
 		break
 		pos_p_p = os.path.join(path,'positive')
 		if not os.path.exists(p_p):
