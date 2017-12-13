@@ -110,17 +110,17 @@ def read():
 		
 		
 		process = multiprocessing.Process(target = patch_data,args = (positive,pos_p_p,ff[f_i],images,))
-        process.start()
-	
+		process.start()
+
 		neg_p_p = os.path.join(path,'negtive')
 
 		if not os.path.exists(p_p):
 			os.mkdir(p_p)
 
 		process = multiprocessing.Process(target = patch_data,args = (negtive,neg_p_p,ff[f_i],images,))
-        process.start()
+		process.start()
 
-		
+
 		print 'Folder:	{}	time:	{}'.format(f_i,time.time()-t)
 
 
