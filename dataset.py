@@ -32,7 +32,7 @@ class BRATSDATA(data.Dataset):
         _file = open(os.path.join(dataset_dir, "data.pkl"), "rb")
         self.data = pickle.load(_file)
         _file.close()
-        print len(data)
+        print len(self.data)
 
         self.trainset = []
         for inx in range(len(self.data) - 1):
