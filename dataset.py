@@ -32,14 +32,13 @@ class BRATSDATA(data.Dataset):
         _file = open(os.path.join(dataset_dir, "data.pkl"), "rb")
         self.data = pickle.load(_file)
         _file.close()
-        print len(self.data)
 
         self.trainset = []
         for inx in range(len(self.data) - 1):
             for person in self.data[inx].keys():
-
+                print person
                 self.trainset += self.data[inx][person]
-              
+                print len(self.data[inx][person])
         random.shuffle(self.trainset)
 
         self.testset = []
