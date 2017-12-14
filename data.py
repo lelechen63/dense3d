@@ -13,8 +13,8 @@ hsize, wsize, csize = 25, 25, 25
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--root', dest='root', default='/mnt/disk1/dat/lchen63/spie')
-    # parser.add_argument('--root', dest='root', default='/media/lele/DATA/spie')
+    # parser.add_argument('--root', dest='root', default='/mnt/disk1/dat/lchen63/spie')
+    parser.add_argument('--root', dest='root', default='/media/lele/DATA/spie')
 
     parser.add_argument('--normalization', dest='normalization', type=bool, default=False)
     return parser.parse_args()
@@ -98,23 +98,23 @@ def read():
             ###################################
             non_zero_coordinates = np.nonzero(images[1, :, :, :])
             pos += len(non_zero_coordinates[0])
-
+            numpy_path = person.replace('folders','data') + '.npy'
             for inx in range(non_zero_coordinates[0].shape[0]):
                 positive.append(
-                    [non_zero_coordinates[0][inx], non_zero_coordinates[1][inx], non_zero_coordinates[2][inx]])
+                    [numpy_path,non_zero_coordinates[0][inx], non_zero_coordinates[1][inx], non_zero_coordinates[2][inx]])
 
-                # if inx == 100:
-                #     break
+                if inx == 100:
+                    break
 
             negtive_coordinates = np.where((images[0, :, :, :] != 0) & (images[1, :, :, :] == 0))
             neg += len(negtive_coordinates[0])
 
             for inx in range(len(negtive_coordinates[0])):
                 negative.append(
-                    [negtive_coordinates[0][inx], negtive_coordinates[1][inx], negtive_coordinates[2][inx]])
+                    [numpy_path,negtive_coordinates[0][inx], negtive_coordinates[1][inx], negtive_coordinates[2][inx]])
 
-                # if inx == 100:
-                #     break
+                if inx == 100:
+                    break
             random.shuffle(positive)
             random.shuffle(negative)
             negative = negative[:len(positive)]
@@ -123,7 +123,7 @@ def read():
             # data_t[person.split('/')[-1]].append(negative)
             print len(positive)
             print len(negative)
-            numpy_path = person.replace('folders','data') + '.npy'
+            
             np.save(numpy_path,images)
         if len(data_t) != 57:
             print '___________________'
