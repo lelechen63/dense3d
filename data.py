@@ -14,7 +14,7 @@ hsize, wsize, csize = 25, 25, 25
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--root', dest='root', default='/mnt/disk1/dat/lchen63/spie')
-    # parser.add_argument('--root', dest='root', default='/media/yue/Data/spie')
+    # parser.add_argument('--root', dest='root', default='/media/lele/DATA/spie')
 
     parser.add_argument('--normalization', dest='normalization', type=bool, default=False)
     return parser.parse_args()
@@ -30,11 +30,14 @@ def read():
     folder = os.path.join(config.root, 'folders')
     if not os.path.exists(folder):
         os.mkdir(folder)
-    if not os.path.exists(os.path.join(config.root, 'patch')):
-        os.mkdir(os.path.join(config.root, 'patch'))
+    if not os.path.exists(os.path.join(config.root, 'data')):
+        os.mkdir(os.path.join(config.root, 'data'))
 
     for i in range(1, 6):
         t = os.path.join(folder, 'folder{}'.format(i))
+        if not os.path.exists(t):
+            os.mkdir(t)
+        t = os.path.join(os.path.join(config.root, 'data'), 'folder{}'.format(i))
         if not os.path.exists(t):
             os.mkdir(t)
 
@@ -70,23 +73,19 @@ def read():
     data = []
     for f_i in range(5):
 
-        path = os.path.join(os.path.join(config.root, 'patch'), 'folder{}'.format(f_i + 1))
-        if not os.path.exists(path):
-            os.mkdir(path)
-
         t = time.time()
         data_t = {}
-        data_t['positive'] = []
-        data_t['negtive'] = []
-        # images = np.ndarray(shape=(len(ff[f_i]), 5, 240, 240, 155))
-        images = np.zeros([5, 240, 240, 155])
-        positive, negative, whole = [], [], []
-        neg, pos, n = 0, 0, 0
+        
+       
         for p, person in enumerate(ff[f_i]):
+            images = np.zeros([5, 240, 240, 155])
+            positive, negative = [], []
+            neg, pos, n = 0, 0, 0
+            data_t[person.split('/')[-1]] = []
             print (p, person)
-            data = os.listdir(person)
+            datas = os.listdir(person)
             for i in range(5):
-                images[i, :, :, :] = load_nii(os.path.join(person, data[i])).get_data()
+                images[i, :, :, :] = load_nii(os.path.join(person, datas[i])).get_data()
             # Brats17_TCIA_430_1_flair.nii.gz
             # Brats17_TCIA_430_1_seg.nii.gz
             # Brats17_TCIA_430_1_t1.nii.gz
@@ -97,79 +96,99 @@ def read():
 
             for inx in range(non_zero_coordinates[0].shape[0]):
                 positive.append(
-                    (non_zero_coordinates[0][inx], non_zero_coordinates[1][inx], non_zero_coordinates[2][inx]))
+                    [non_zero_coordinates[0][inx], non_zero_coordinates[1][inx], non_zero_coordinates[2][inx]])
+
+                if inx == 100:
+                    break
 
             negtive_coordinates = np.where((images[0, :, :, :] != 0) & (images[1, :, :, :] == 0))
             neg += len(negtive_coordinates[0])
 
             for inx in range(len(negtive_coordinates[0])):
                 negative.append(
-                    (negtive_coordinates[0][inx], negtive_coordinates[1][inx], negtive_coordinates[2][inx]))
+                    [negtive_coordinates[0][inx], negtive_coordinates[1][inx], negtive_coordinates[2][inx]])
 
-            # head = np.nonzero(images[p, 0, :, :, :])
-            # w += head[0].shape[0]
-            # for inx in range(head[0].shape[0]):
-            #     whole.append((p, head[0][inx], head[1][inx], head[2][inx]))
-            patch_path = os.path.join(path, person.split('/')[-1])
-            patch_path_pos = os.path.join(patch_path, 'pos')
-            patch_path_neg = os.path.join(patch_path, 'neg')
-            if not os.path.exists(patch_path):
-                os.makedirs(patch_path)
-                os.makedirs(patch_path_pos)
-                os.makedirs(patch_path_neg)
+                if inx == 100:
+                    break
 
-            print "negtive:{},positive:{}".format(len(negative), len(positive))
-            print "n:{},p:{}".format(neg, pos)
+            data_t[person.split('/')[-1]].append(positive)
+            data_t[person.split('/')[-1]].append(negative)
+            print len(positive)
+            print len(negative)
+            numpy_path = person.replace('folders','data') + '.npy'
+            np.save(numpy_path,images)
+        if len(data_t) != 57:
+            print '___________________'
+            break
+        data.append(data_t)
 
-            # pos_patches = get_patches_3d(images, positive, 25, 25, 25)
-            # neg_patches = get_patches_3d(images, negative, 25, 25, 25)
 
-            # save positive patches
-            print 'saving positive patches...'
+            # patch_path = os.path.join(path, person.split('/')[-1])
+            # patch_path_pos = os.path.join(patch_path, 'pos')
+            # patch_path_neg = os.path.join(patch_path, 'neg')
+            # if not os.path.exists(patch_path):
+            #     os.makedirs(patch_path)
+            #     os.makedirs(patch_path_pos)
+            #     os.makedirs(patch_path_neg)
 
-            pos_process = multiprocessing.Process(target=save_patches_3d,
-                                                  args=(images, positive, 25, 25, 25, patch_path_pos))
-            pos_process.start()
-            # save negative patches
-            print 'saving negative patches...'
+            # print "negtive:{},positive:{}".format(len(negative), len(positive))
+            # print "n:{},p:{}".format(neg, pos)
 
-            neg_process = multiprocessing.Process(target=save_patches_3d,
-                                                  args=(images, negative, 25, 25, 25, patch_path_neg))
-            neg_process.start()
-            neg_process.join()
+           
+            # # save positive patches
+            # print 'saving positive patches...'
+
+            # pos_process = multiprocessing.Process(target=save_patches_3d,
+            #                                       args=(images, positive, 25, 25, 25, patch_path_pos))
+            # pos_process.start()
+            # # save negative patches
+            # print 'saving negative patches...'
+
+            # neg_process = multiprocessing.Process(target=save_patches_3d,
+            #                                       args=(images, negative, 25, 25, 25, patch_path_neg))
+            # neg_process.start()
+            # neg_process.join()
 
     print 'done'
+    with open(os.path.join(config.root,'data.pkl'), 'wb') as handle:
+        pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+def merge_two_dicts(x, y):
+    z = x.copy()   
+    z.update(y)    
+    return z
+def generate_train_data(data):
+    _file = open(data, "rb")
+    data = pickle.load(_file)
+    _file.close()
+    print len(data)
+    count = 0
+    # train = {}
+    # for inx in range(len(data)-1):
+    #     train = merge_two_dicts(train,data[inx])
+    # print len(train)
+    train = {}
+    for inx in range(len(data) - 1):
+        for person in data[inx].keys():
+            print person
+            positive = data[inx][person][0]
+            negative = data[inx][person][1]
+            print len(positive)
+            print len(negative)
+            print '----------'
+            positive = random.shuffle(positive)
+            negative = random.shuffle(negative)[:len(positive)]
+            
 
-        # break
-    #     pos_p_p = os.path.join(path, 'positive')
-    #     if not os.path.exists(p_p):
-    #         os.mkdir(p_p)
-    #
-        # process = multiprocessing.Process(target=patch_data, args=(positive, pos_p_p, ff[f_i], images,))
-        # process.start()
-    #
-    #     neg_p_p = os.path.join(path, 'negtive')
-    #
-    #     if not os.path.exists(p_p):
-    #         os.mkdir(p_p)
-    #
-    #     process = multiprocessing.Process(target=patch_data, args=(negtive, neg_p_p, ff[f_i], images,))
-    #     process.start()
-    #
-    #     print 'Folder:	{}	time:	{}'.format(f_i, time.time() - t)
-    #
-    # with open(os.path.join(config.root, 'data.pkl'), 'wb') as handle:
-    #     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    # for i in  data:
+    #     print type(i)
+    #     print i.keys()
+    #     print len(i)
+        # count += len(i)
+    # print count
 
 
-# def patch_data(sets, save_path, ff_fi, images):
-#     for center in sets:
-#
-#         patch = images[center[0], :, max(center[1] - 12, 0):min(center[1] + 13, images.shape[2]),
-#                 max(center[2] - 12, 0):min(center[2] + 13, images.shape[3]),
-#                 max(center[3] - 12, 0):min(center[3] + 13, images.shape[4])]
-#
-#         np.save(save_path, patch)
+    # print data
+
 
 
 def save_patches_3d(data, centers, hsize, wsize, csize, patch_path):
@@ -194,3 +213,4 @@ def save_patches_3d(data, centers, hsize, wsize, csize, patch_path):
 
 config = parse_args()
 read()
+# generate_train_data(os.path.join(config.root, "data.pkl"))
