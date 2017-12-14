@@ -13,8 +13,8 @@ hsize, wsize, csize = 25, 25, 25
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    # parser.add_argument('--root', dest='root', default='/mnt/disk1/dat/lchen63/spie')
-    parser.add_argument('--root', dest='root', default='/media/lele/DATA/spie')
+    parser.add_argument('--root', dest='root', default='/mnt/disk1/dat/lchen63/spie')
+    # parser.add_argument('--root', dest='root', default='/media/lele/DATA/spie')
 
     parser.add_argument('--normalization', dest='normalization', type=bool, default=False)
     return parser.parse_args()
