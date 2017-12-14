@@ -84,9 +84,10 @@ def read():
             data_t[person.split('/')[-1]] = []
             print (p, person)
             datas = os.listdir(person)
+            datas.sort()
             for i in range(5):
                 images[i, :, :, :] = load_nii(os.path.join(person, datas[i])).get_data()
-                # print datas[i]
+                print datas[i]
 
             # Brats17_CBICA_AOH_1_t1ce.nii.gz
             # Brats17_CBICA_AOH_1_t2.nii.gz
