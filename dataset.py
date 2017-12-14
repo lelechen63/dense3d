@@ -41,6 +41,8 @@ class BRATSDATA(data.Dataset):
                 self.trainset += data[inx][person]
               
         random.shuffle(self.trainset)
+
+        self.testset = []
     def __getitem__(self, index):
         # In training phase, it return real_image, wrong_image, text
         if self.train:
@@ -70,9 +72,9 @@ class BRATSDATA(data.Dataset):
 
     def __len__(self):
         if self.train:
-            return len(self.train_data)
+            return len(self.trainset)
         else:
-            return len(self.test_data)
+            return len(self.testset)
 
 
     def get_patch(image, center, hsize, wsize, csize):
