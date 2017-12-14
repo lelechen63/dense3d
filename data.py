@@ -89,18 +89,13 @@ def read():
                 images[i, :, :, :] = load_nii(os.path.join(person, datas[i])).get_data()
                 print datas[i]
 
-            # Brats17_CBICA_AOH_1_t1ce.nii.gz
-            # Brats17_CBICA_AOH_1_t2.nii.gz
-            # Brats17_CBICA_AOH_1_seg.nii.gz
-            # Brats17_CBICA_AOH_1_t1.nii.gz
-            # Brats17_CBICA_AOH_1_flair.nii.gz
-
-            ##################################
-            # Brats17_TCIA_430_1_flair.nii.gz
-            # Brats17_TCIA_430_1_seg.nii.gz
-            # Brats17_TCIA_430_1_t1.nii.gz
-            # Brats17_TCIA_430_1_t1ce.nii.gz
-            # Brats17_TCIA_430_1_t2.nii.gz
+            ###################################
+            # Brats17_TCIA_430_1_flair.nii.gz #
+            # Brats17_TCIA_430_1_seg.nii.gz   #
+            # Brats17_TCIA_430_1_t1.nii.gz    #
+            # Brats17_TCIA_430_1_t1ce.nii.gz  #
+            # Brats17_TCIA_430_1_t2.nii.gz    #
+            ###################################
             non_zero_coordinates = np.nonzero(images[1, :, :, :])
             pos += len(non_zero_coordinates[0])
 
@@ -120,7 +115,10 @@ def read():
 
                 # if inx == 100:
                 #     break
-
+            random.shuffle(positive)
+            random.shuffle(negative)
+            negative = negative[:len(positive)]
+            
             data_t[person.split('/')[-1]].append(positive)
             data_t[person.split('/')[-1]].append(negative)
             print len(positive)
@@ -176,17 +174,34 @@ def generate_train_data(data):
     # for inx in range(len(data)-1):
     #     train = merge_two_dicts(train,data[inx])
     # print len(train)
-    train = {}
+    train = []
     for inx in range(len(data) - 1):
         for person in data[inx].keys():
             print person
+            image = np.load(os.path.join(os.path.join(os.path.join(config.root,'data'),'folder{}'.format(inx+1)),person+'.npy'))
+            print image.shape
+            
             positive = data[inx][person][0]
             negative = data[inx][person][1]
-            print len(positive)
-            print len(negative)
-            print '----------'
-            positive = random.shuffle(positive)
-            negative = random.shuffle(negative)[:len(positive)]
+            # print len(positive)
+            # print len(negative)
+            # print '----------'
+            random.shuffle(positive)
+            random.shuffle(negative)
+            negative = negative[:len(positive)]
+
+            for center in positive+negative:
+                # print center
+                patch = save_patches_3d(image,center,33,33,33)
+                # print patch.shape
+                train.append(patch)
+            # break
+        # break
+    print len(train)
+    # print train[0]
+    with open(os.path.join(config.root,'train.pkl'), 'wb') as handle:
+        pickle.dump(train, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
             
 
     # for i in  data:
@@ -201,10 +216,10 @@ def generate_train_data(data):
 
 
 
-def save_patches_3d(data, centers, hsize, wsize, csize, patch_path):
+def save_patches_3d(image, center, hsize, wsize, csize):
     """
 
-    :param data: 4D nparray (h, w, c, ?)
+    :param data: 4D nparray (5,h, w, c)
     :param centers:
     :param hsize:
     :param wsize:
@@ -212,13 +227,13 @@ def save_patches_3d(data, centers, hsize, wsize, csize, patch_path):
     :return:
     """
 
-    for i in range(len(centers)):
-        h, w, c = centers[i][0], centers[i][1], centers[i][2]
-        h_beg, w_beg, c_beg = np.maximum(0, h - hsize / 2), np.maximum(0, w - wsize / 2), np.maximum(0,
-                                                                                                     c - csize / 2)
-        vox = data[:, h_beg:h_beg + hsize, w_beg:w_beg + wsize, c_beg:c_beg + csize]
-        np.save(os.path.join(patch_path, str(i)), vox)
-
+    # for i in range(len(centers)):
+    h, w, c = center[0], center[1], center[2]
+    h_beg, w_beg, c_beg = np.maximum(0, h - hsize / 2), np.maximum(0, w - wsize / 2), np.maximum(0,
+                                                                                                 c - csize / 2)
+    vox = image[:, h_beg:h_beg + hsize, w_beg:w_beg + wsize, c_beg:c_beg + csize]
+    # np.save(os.path.join(patch_path, str(i)), vox)
+    return vox
 
 
 config = parse_args()
