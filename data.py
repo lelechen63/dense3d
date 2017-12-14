@@ -118,9 +118,9 @@ def read():
             random.shuffle(positive)
             random.shuffle(negative)
             negative = negative[:len(positive)]
-            
-            data_t[person.split('/')[-1]].append(positive)
-            data_t[person.split('/')[-1]].append(negative)
+
+            data_t[person.split('/')[-1]].append(random.shuffle(positive + negative))
+            # data_t[person.split('/')[-1]].append(negative)
             print len(positive)
             print len(negative)
             numpy_path = person.replace('folders','data') + '.npy'
@@ -186,10 +186,7 @@ def generate_train_data(data):
             # print len(positive)
             # print len(negative)
             # print '----------'
-            random.shuffle(positive)
-            random.shuffle(negative)
-            negative = negative[:len(positive)]
-
+            
             for center in positive+negative:
                 # print center
                 patch = save_patches_3d(image,center,33,33,33)
