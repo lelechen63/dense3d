@@ -30,15 +30,15 @@ class BRATSDATA(data.Dataset):
         ])
 
         _file = open(os.path.join(dataset_dir, "data.pkl"), "rb")
-        data = pickle.load(_file)
+        self.data = pickle.load(_file)
         _file.close()
         print len(data)
 
         self.trainset = []
-        for inx in range(len(data) - 1):
-            for person in data[inx].keys():
+        for inx in range(len(self.data) - 1):
+            for person in self.data[inx].keys():
 
-                self.trainset += data[inx][person]
+                self.trainset += self.data[inx][person]
               
         random.shuffle(self.trainset)
 
@@ -49,8 +49,8 @@ class BRATSDATA(data.Dataset):
             while True:
                 # try:
 
-                center = self.data[index][1:]
-                image = np.load(self.data[index][0])
+                center = self.trainset[index][1:]
+                image = np.load(self.trainset[index][0])
                 print image.shape
                 ###################################
                 # Brats17_TCIA_430_1_flair.nii.gz #
