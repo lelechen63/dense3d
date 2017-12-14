@@ -39,6 +39,7 @@ class BRATSDATA(data.Dataset):
                 print person
                 self.trainset += self.data[inx][person]
                 print len(self.data[inx][person])
+                print self.data[inx][person]
         random.shuffle(self.trainset)
 
         self.testset = []
