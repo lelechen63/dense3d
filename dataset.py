@@ -32,14 +32,15 @@ class BRATSDATA(data.Dataset):
         _file = open(os.path.join(dataset_dir, "data.pkl"), "rb")
         self.data = pickle.load(_file)
         _file.close()
-
+        print self.data
         self.trainset = []
         for inx in range(len(self.data) - 1):
-            for person in self.data[inx].keys():
-                print person
-                self.trainset += self.data[inx][person]
-                print len(self.data[inx][person])
-                print self.data[inx][person]
+            print self.data[inx]
+            # for person in self.data[inx].keys():
+            #     print person
+            #     self.trainset += self.data[inx][person]
+            #     print len(self.data[inx][person])
+            #     print self.data[inx][person]
         random.shuffle(self.trainset)
 
         self.testset = []
@@ -108,12 +109,13 @@ class BRATSDATA(data.Dataset):
         return vox
 
 
-dataset = BRATSDATA('/mnt/disk1/dat/lchen63/spie', train=True)
+# dataset = BRATSDATA('/mnt/disk1/dat/lchen63/spie', train=True)
+dataset = BRATSDATA('/media/lele/DATA/spie', train=True)
 
 data_loader = DataLoader(dataset,
                               batch_size=1,
                               num_workers=4,
                               shuffle=True, drop_last=True)
-data_iter = iter(data_loader)
-data_iter.next()
+# data_iter = iter(data_loader)
+# data_iter.next()
 print len(data_loader)

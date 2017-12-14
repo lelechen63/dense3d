@@ -74,20 +74,19 @@ def read():
     for f_i in range(5):
 
         t = time.time()
-        data_t = {}
-        
+        data_t = []        
        
         for p, person in enumerate(ff[f_i]):
             images = np.zeros([5, 240, 240, 155])
             positive, negative = [], []
             neg, pos, n = 0, 0, 0
-            data_t[person.split('/')[-1]] = []
             print (p+f_i*57, person)
             datas = os.listdir(person)
             datas.sort()
             for i in range(5):
                 images[i, :, :, :] = load_nii(os.path.join(person, datas[i])).get_data()
-                print datas[i]
+                # print images.shape
+                # print datas[i]
 
             ###################################
             # Brats17_TCIA_430_1_flair.nii.gz #
@@ -105,7 +104,6 @@ def read():
 
                 # if inx == 100:
                 #     break
-
             negtive_coordinates = np.where((images[0, :, :, :] != 0) & (images[1, :, :, :] == 0))
             neg += len(negtive_coordinates[0])
 
@@ -117,18 +115,20 @@ def read():
                 #     break
             random.shuffle(positive)
             random.shuffle(negative)
-            negative = negative[:len(positive)]
+            negative = negative[:len(positive)] + positive
 
-            data_t[person.split('/')[-1]].append(random.shuffle(positive + negative))
-            # data_t[person.split('/')[-1]].append(negative)
-            print len(positive)
-            print len(negative)
+            random.shuffle(negative)
+            data_t.append(negative)
+    
             
             np.save(numpy_path,images)
+            
         if len(data_t) != 57:
             print '___________________'
             break
+
         data.append(data_t)
+        print data
 
 
             # patch_path = os.path.join(path, person.split('/')[-1])
