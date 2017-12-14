@@ -98,8 +98,8 @@ def read():
                 positive.append(
                     [non_zero_coordinates[0][inx], non_zero_coordinates[1][inx], non_zero_coordinates[2][inx]])
 
-                if inx == 100:
-                    break
+                # if inx == 100:
+                #     break
 
             negtive_coordinates = np.where((images[0, :, :, :] != 0) & (images[1, :, :, :] == 0))
             neg += len(negtive_coordinates[0])
@@ -108,8 +108,8 @@ def read():
                 negative.append(
                     [negtive_coordinates[0][inx], negtive_coordinates[1][inx], negtive_coordinates[2][inx]])
 
-                if inx == 100:
-                    break
+                # if inx == 100:
+                #     break
 
             data_t[person.split('/')[-1]].append(positive)
             data_t[person.split('/')[-1]].append(negative)
