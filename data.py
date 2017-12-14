@@ -101,7 +101,7 @@ def read():
             # Brats17_TCIA_430_1_t1.nii.gz
             # Brats17_TCIA_430_1_t1ce.nii.gz
             # Brats17_TCIA_430_1_t2.nii.gz
-            non_zero_coordinates = np.nonzero(images[2, :, :, :])
+            non_zero_coordinates = np.nonzero(images[1, :, :, :])
             pos += len(non_zero_coordinates[0])
 
             for inx in range(non_zero_coordinates[0].shape[0]):
@@ -111,7 +111,7 @@ def read():
                 # if inx == 100:
                 #     break
 
-            negtive_coordinates = np.where((images[0, :, :, :] != 0) & (images[2, :, :, :] == 0))
+            negtive_coordinates = np.where((images[0, :, :, :] != 0) & (images[1, :, :, :] == 0))
             neg += len(negtive_coordinates[0])
 
             for inx in range(len(negtive_coordinates[0])):
