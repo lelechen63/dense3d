@@ -86,6 +86,8 @@ def read():
             datas = os.listdir(person)
             for i in range(5):
                 images[i, :, :, :] = load_nii(os.path.join(person, datas[i])).get_data()
+                print data[i]
+
             # Brats17_TCIA_430_1_flair.nii.gz
             # Brats17_TCIA_430_1_seg.nii.gz
             # Brats17_TCIA_430_1_t1.nii.gz
