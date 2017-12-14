@@ -86,14 +86,21 @@ def read():
             datas = os.listdir(person)
             for i in range(5):
                 images[i, :, :, :] = load_nii(os.path.join(person, datas[i])).get_data()
-                print datas[i]
+                # print datas[i]
 
+            # Brats17_CBICA_AOH_1_t1ce.nii.gz
+            # Brats17_CBICA_AOH_1_t2.nii.gz
+            # Brats17_CBICA_AOH_1_seg.nii.gz
+            # Brats17_CBICA_AOH_1_t1.nii.gz
+            # Brats17_CBICA_AOH_1_flair.nii.gz
+
+            ##################################
             # Brats17_TCIA_430_1_flair.nii.gz
             # Brats17_TCIA_430_1_seg.nii.gz
             # Brats17_TCIA_430_1_t1.nii.gz
             # Brats17_TCIA_430_1_t1ce.nii.gz
             # Brats17_TCIA_430_1_t2.nii.gz
-            non_zero_coordinates = np.nonzero(images[1, :, :, :])
+            non_zero_coordinates = np.nonzero(images[2, :, :, :])
             pos += len(non_zero_coordinates[0])
 
             for inx in range(non_zero_coordinates[0].shape[0]):
@@ -103,7 +110,7 @@ def read():
                 # if inx == 100:
                 #     break
 
-            negtive_coordinates = np.where((images[0, :, :, :] != 0) & (images[1, :, :, :] == 0))
+            negtive_coordinates = np.where((images[0, :, :, :] != 0) & (images[2, :, :, :] == 0))
             neg += len(negtive_coordinates[0])
 
             for inx in range(len(negtive_coordinates[0])):
