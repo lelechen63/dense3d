@@ -82,7 +82,7 @@ def read():
             positive, negative = [], []
             neg, pos, n = 0, 0, 0
             data_t[person.split('/')[-1]] = []
-            print (p, person)
+            print (p+f_i*57, person)
             datas = os.listdir(person)
             datas.sort()
             for i in range(5):
