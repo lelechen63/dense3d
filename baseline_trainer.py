@@ -7,7 +7,7 @@ import torch.nn as nn
 import torchvision
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
-
+import numpy as np
 from dataset import  BRATSDATA 
 from network import HieNet
 from tensorboard_logger import configure, log_value
