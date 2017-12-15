@@ -127,19 +127,20 @@ class Trainer():
                           .format(epoch+1, config.max_epochs,
                                   step+1, num_steps_per_epoch, loss.data[0], ed_loss.data[0], et_loss.data[0], net_loss.data[0],  eta))
                     log_value('training_loss',loss.data[0] , step + num_steps_per_epoch * epoch)
-                # if (step ) % (num_steps_per_epoch/10) == 0 :
-                #     fake_store = fake_im.data.permute(0,2,1,3,4).contiguous().view(config.batch_size*29,3,64,64)
-                #     torchvision.utils.save_image(fake_store,
-                #         "{}fake_{}.png".format(config.sample_dir,cc), nrow=29,normalize=True)
-                #     real_store = real_im.data.permute(0,2,1,3,4).contiguous().view(config.batch_size*29,3,64,64)
-                #     torchvision.utils.save_image(real_store,
-                #         "{}real_{}.png".format(config.sample_dir,cc), nrow=29,normalize=True)
-                #     cc += 1
+                if (step ) % (num_steps_per_epoch/100) == 0 :
+                    _ed_iou = self.dice_coef_np(ed.data.cpu().numpy(), f_ed.data.cpu().numpy(),2)
+                    _et_iou = self.dice_coef_np(et.data.cpu().numpy(), f_et.data.cpu().numpy(),2)
+                    _net_iou = self.dice_coef_np(net.data.cpu().numpy(), f_net.data.cpu().numpy(),2)
+
+                    print("[{}/{}][{}/{}]  ed_iou: {:.4f},et_iou: {:.4f},net_iou: {:.4f}"
+                          .format(epoch+1, config.max_epochs,
+                                  step+1, num_steps_per_epoch, _ed_iou, _et_iou, _net_iou))
+                    
             if epoch % 1 == 0:
                 loss = 0
-                ed_acc = AverageMeter()
-                et_acc = AverageMeter()
-                net_acc= AverageMeter()
+                ed_acc = 0
+                et_acc = 0
+                net_acc= 0
                 ed_loss_average = 0
                 et_loss_average = 0
                 net_loss_average = 0
@@ -177,15 +178,35 @@ class Trainer():
                     ed_loss_average += ed_loss
                     et_loss_average += et_loss
                     net_loss_average += net_loss
+
+                    _ed_iou = self.dice_coef_np(ed.cpu().data.numpy(), f_ed.data.cpu().numpy(),2)
+                    _et_iou = self.dice_coef_np(et.cpu().data.numpy(), f_et.data.cpu().numpy(),2)
+                    _net_iou = self.dice_coef_np(net.cpu().data.numpy(), f_net.data.cpu().numpy(),2)
+
+                    ed_acc += _ed_iou
+                    et_acc += _et_iou
+                    net_acc += _net_iou
+
                 loss = loss/step
+                ed_acc = ed_acc/step
+                et_acc = et_acc/step
+                net_acc = net_acc/step
+
+
                 ed_loss_average = ed_loss_average/step
                 et_loss_average = et_loss_average/step
                 net_loss_average = net_loss_average/step
                 print '==================================Evaluation========================================================'
-                print("[{}/{}][{}/{}] loss: {:.4f}, ed_loss: {:.4f},et_loss: {:.4f},net_loss: {:.4f}, ETA: {} second"
+                print("[{}/{}][{}/{}] loss: {:.4f}, ed_loss: {:.4f},et_loss: {:.4f},net_loss: {:.4f}"
                           .format(epoch+1, config.max_epochs,
-                                  step+1, num_steps_per_epoch, loss.data[0], ed_loss.data[0], et_loss.data[0], net_loss.data[0],  eta))
+                                  step+1, num_steps_per_epoch, loss.data[0], ed_loss.data[0], et_loss.data[0], net_loss.data[0]))
+                
+                print("[{}/{}][{}/{}]  ed_iou: {:.4f},et_iou: {:.4f},net_iou: {:.4f}"
+                          .format(epoch+1, config.max_epochs,
+                                  step+1, num_steps_per_epoch, ed_acc, et_acc, net_acc))
+
                 # log_value('evaluation_loss',loss.data[0] , step + num_steps_per_epoch * epoch)
+
 
 
 
@@ -209,3 +230,25 @@ class Trainer():
         self.lr = self.lr * (0.1**(epoch // 30))
         for param_group in optimizer.state_dict()['param_groups']:
             param_group['lr'] = self.lr
+
+
+    def dice_coef_np(self, y_true, y_pred, num_classes):
+        """
+
+       :param y_true: sparse labels
+        :param y_pred: sparse labels
+        :param num_classes: number of classes
+        :return:
+        """
+        y_true = y_true.flatten()
+        y_true = self.one_hot(y_true, num_classes)
+        y_pred = y_pred.flatten()
+        y_pred = self.one_hot(y_pred, num_classes)
+        intersection = np.sum(y_true * y_pred, axis=0)
+        return (2. * intersection) / (np.sum(y_true, axis=0) + np.sum(y_pred, axis=0))
+
+
+    def one_hot(self, y, num_classees):
+        y_ = np.zeros([len(y), num_classees])
+        y_[np.arange(len(y)), y] = 1
+        return y_

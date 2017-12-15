@@ -137,7 +137,7 @@ class BRATSDATA(data.Dataset):
                 ###################################
                 patch = self.get_patch(image,center,33,33,33)
                 ed, et, net = self.get_musk(image,center,9,9,9)
-                return torch.FloatTensor(patch), torch.FloatTensor(ed), torch.FloatTensor(et), torch.FloatTensor(net)
+                return patch, ed, et, net
 
             # except:
             #     index = (index + 1) % len(self.testset)
