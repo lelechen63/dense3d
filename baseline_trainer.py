@@ -118,7 +118,7 @@ class Trainer():
 
                 t2 = time.time()
 
-                if (step+1) % 1 == 0 or (step+1) == num_steps_per_epoch:
+                if (step+1) % 1 == 50 or (step+1) == num_steps_per_epoch:
                     steps_remain = num_steps_per_epoch-step+1 + \
                         (config.max_epochs-epoch+1)*num_steps_per_epoch
                     eta = int((t2-t1)*steps_remain)
@@ -127,14 +127,14 @@ class Trainer():
                           .format(epoch+1, config.max_epochs,
                                   step+1, num_steps_per_epoch, loss.data[0], ed_loss.data[0], et_loss.data[0], net_loss.data[0],  eta))
                     log_value('training_loss',loss.data[0] , step + num_steps_per_epoch * epoch)
-                if (step ) % (num_steps_per_epoch/100) == 0 :
+                if (step ) % (num_steps_per_epoch/1000) == 0 :
                     _ed_iou = self.dice_coef_np(ed.data.cpu().numpy(), f_ed.data.cpu().numpy(),2)
                     _et_iou = self.dice_coef_np(et.data.cpu().numpy(), f_et.data.cpu().numpy(),2)
                     _net_iou = self.dice_coef_np(net.data.cpu().numpy(), f_net.data.cpu().numpy(),2)
 
-                    print("[{}/{}][{}/{}]  ed_iou: {:.4f},et_iou: {:.4f},net_iou: {:.4f}"
+                    print("[{}/{}][{}/{}]  ed_bg: {:.4f}, ed_iou: {:.4f}, et_bg: {:.4f},et_iou: {:.4f}, net_bg: {:.4f}, net_iou: {:.4f}"
                           .format(epoch+1, config.max_epochs,
-                                  step+1, num_steps_per_epoch, _ed_iou, _et_iou, _net_iou))
+                                  step+1, num_steps_per_epoch, _ed_iou[0], _ed_iou[1] , _et_iou[0], _et_iou[1], _net_iou[0], _net_iou[1]))
                     
             if epoch % 1 == 0:
                 loss = 0
@@ -201,9 +201,9 @@ class Trainer():
                           .format(epoch+1, config.max_epochs,
                                   step+1, num_steps_per_epoch, loss.data[0], ed_loss.data[0], et_loss.data[0], net_loss.data[0]))
                 
-                print("[{}/{}][{}/{}]  ed_iou: {:.4f},et_iou: {:.4f},net_iou: {:.4f}"
+                print("[{}/{}][{}/{}]  ed_bg: {:.4f}, ed_iou: {:.4f}, et_bg: {:.4f},et_iou: {:.4f}, net_bg: {:.4f}, net_iou: {:.4f}"
                           .format(epoch+1, config.max_epochs,
-                                  step+1, num_steps_per_epoch, ed_acc, et_acc, net_acc))
+                                  step+1, num_steps_per_epoch, _ed_iou[0], _ed_iou[1] , _et_iou[0], _et_iou[1], _net_iou[0], _net_iou[1]))
 
                 # log_value('evaluation_loss',loss.data[0] , step + num_steps_per_epoch * epoch)
 
@@ -240,6 +240,8 @@ class Trainer():
         :param num_classes: number of classes
         :return:
         """
+        y_true = y_true.astype(int)
+        y_pred = y_pred.astype(int)
         y_true = y_true.flatten()
         y_true = self.one_hot(y_true, num_classes)
         y_pred = y_pred.flatten()
