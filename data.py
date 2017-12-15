@@ -13,8 +13,8 @@ hsize, wsize, csize = 25, 25, 25
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--root', dest='root', default='/mnt/disk1/dat/lchen63/spie')
-    # parser.add_argument('--root', dest='root', default='/media/lele/DATA/spie')
+    # parser.add_argument('--root', dest='root', default='/mnt/disk1/dat/lchen63/spie')
+    parser.add_argument('--root', dest='root', default='/media/lele/DATA/spie')
 
     parser.add_argument('--normalization', dest='normalization', type=bool, default=False)
     return parser.parse_args()
@@ -123,39 +123,15 @@ def read():
             
             np.save(numpy_path,images)
             
-        if len(data_t) != 57:
-            print '___________________'
-            break
+            # if len(data_t) == 10:
+            #     print '___________________'
+            #     break
 
         data.append(data_t)
         print data
 
 
-            # patch_path = os.path.join(path, person.split('/')[-1])
-            # patch_path_pos = os.path.join(patch_path, 'pos')
-            # patch_path_neg = os.path.join(patch_path, 'neg')
-            # if not os.path.exists(patch_path):
-            #     os.makedirs(patch_path)
-            #     os.makedirs(patch_path_pos)
-            #     os.makedirs(patch_path_neg)
-
-            # print "negtive:{},positive:{}".format(len(negative), len(positive))
-            # print "n:{},p:{}".format(neg, pos)
-
-           
-            # # save positive patches
-            # print 'saving positive patches...'
-
-            # pos_process = multiprocessing.Process(target=save_patches_3d,
-            #                                       args=(images, positive, 25, 25, 25, patch_path_pos))
-            # pos_process.start()
-            # # save negative patches
-            # print 'saving negative patches...'
-
-            # neg_process = multiprocessing.Process(target=save_patches_3d,
-            #                                       args=(images, negative, 25, 25, 25, patch_path_neg))
-            # neg_process.start()
-            # neg_process.join()
+            
 
     print 'done'
     with open(os.path.join(config.root,'data.pkl'), 'wb') as handle:
@@ -170,10 +146,7 @@ def generate_train_data(data):
     _file.close()
     print len(data)
     count = 0
-    # train = {}
-    # for inx in range(len(data)-1):
-    #     train = merge_two_dicts(train,data[inx])
-    # print len(train)
+
     train = []
     for inx in range(len(data) - 1):
         for person in data[inx].keys():
@@ -183,33 +156,16 @@ def generate_train_data(data):
             
             positive = data[inx][person][0]
             negative = data[inx][person][1]
-            # print len(positive)
-            # print len(negative)
-            # print '----------'
-            
+          
             for center in positive+negative:
-                # print center
                 patch = save_patches_3d(image,center,33,33,33)
-                # print patch.shape
                 train.append(patch)
-            # break
-        # break
     print len(train)
-    # print train[0]
     with open(os.path.join(config.root,'train.pkl'), 'wb') as handle:
         pickle.dump(train, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
             
 
-    # for i in  data:
-    #     print type(i)
-    #     print i.keys()
-    #     print len(i)
-        # count += len(i)
-    # print count
-
-
-    # print data
 
 
 

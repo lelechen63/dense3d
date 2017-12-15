@@ -32,10 +32,11 @@ class BRATSDATA(data.Dataset):
         _file = open(os.path.join(dataset_dir, "data.pkl"), "rb")
         self.data = pickle.load(_file)
         _file.close()
-        print self.data
+        # print self.data
         self.trainset = []
-        for inx in range(len(self.data) - 1):
-            print self.data[inx]
+        for inx in range(len(self.data[0]) - 1):
+            # print self.data[inx]
+            self.trainset += self.data[0][inx]
             # for person in self.data[inx].keys():
             #     print person
             #     self.trainset += self.data[inx][person]
@@ -43,42 +44,10 @@ class BRATSDATA(data.Dataset):
             #     print self.data[inx][person]
         random.shuffle(self.trainset)
 
-        self.testset = []
-    def __getitem__(self, index):
-        # In training phase, it return real_image, wrong_image, text
-        if self.train:
-            while True:
-                # try:
-
-                center = self.trainset[index][1:]
-                image = np.load(self.trainset[index][0])
-                print image.shape
-                ###################################
-                # Brats17_TCIA_430_1_flair.nii.gz #
-                # Brats17_TCIA_430_1_seg.nii.gz   #
-                # Brats17_TCIA_430_1_t1.nii.gz    #
-                # Brats17_TCIA_430_1_t1ce.nii.gz  #
-                # Brats17_TCIA_430_1_t2.nii.gz    #
-                ###################################
-                patch = get_patch(image,center,33,33,33)
-                musk = get_musk(image,center,9,9,9)
-                return patch, musk
-
-                # except:
-                #     index = (index + 1) % len(self.train_data)
-                #     print 'Fuck'
-
-        else:
-            pass
-
-    def __len__(self):
-        if self.train:
-            return len(self.trainset)
-        else:
-            return len(self.testset)
-
-
-    def get_patch(image, center, hsize, wsize, csize):
+        self.testset = self.data[0][-1]
+        
+        # random.shuffle(self.testset)
+    def get_patch(self,image, center, hsize, wsize, csize):
         """
 
         :param data: 4D nparray (5,h, w, c)
@@ -93,7 +62,7 @@ class BRATSDATA(data.Dataset):
         vox = image[:, h_beg:h_beg + hsize, w_beg:w_beg + wsize, c_beg:c_beg + csize]
         return vox
 
-    def get_musk(image, center, hsize, wsize, csize):
+    def get_musk(self,image, center, hsize, wsize, csize):
         """
 
         :param data: 4D nparray (5,h, w, c)
@@ -106,16 +75,93 @@ class BRATSDATA(data.Dataset):
         h, w, c = center[0], center[1], center[2]
         h_beg, w_beg, c_beg = np.maximum(0, h - hsize / 2), np.maximum(0, w - wsize / 2), np.maximum(0, c - csize / 2)
         vox = image[1, h_beg:h_beg + hsize, w_beg:w_beg + wsize, c_beg:c_beg + csize]
-        return vox
+
+        ed = np.copy(vox)
+
+        et = np.copy(vox)
+
+        net = np.copy(vox)
+
+        ed[np.where(ed[:, :, :] != 0)] = 1
+
+        et[np.where( et[:, :, :] == 4)] = 1
+        et[np.where(et[:, :, :] != 1 )] = 0
+
+        net[np.where(net[:, :, :] != 1)] = 0
 
 
-# dataset = BRATSDATA('/mnt/disk1/dat/lchen63/spie', train=True)
-dataset = BRATSDATA('/media/lele/DATA/spie', train=True)
 
-data_loader = DataLoader(dataset,
-                              batch_size=1,
-                              num_workers=4,
-                              shuffle=True, drop_last=True)
+
+
+
+
+
+        return ed, et, net
+
+    def __getitem__(self, index):
+        # In training phase, it return real_image, wrong_image, text
+        if self.train:
+            while True:
+                # try:
+
+                    center = self.trainset[index][1:]
+                    image = np.load(self.trainset[index][0])
+                    # print image.shape
+                    ###################################
+                    # Brats17_TCIA_430_1_flair.nii.gz #
+                    # Brats17_TCIA_430_1_seg.nii.gz   #
+                    # Brats17_TCIA_430_1_t1.nii.gz    #
+                    # Brats17_TCIA_430_1_t1ce.nii.gz  #
+                    # Brats17_TCIA_430_1_t2.nii.gz    #
+                    ###################################
+                    patch = self.get_patch(image,center,33,33,33)
+                    ed, et, net = self.get_musk(image,center,9,9,9)
+                    return patch, ed, et, net
+
+                # except:
+                #     index = (index + 1) % len(self.train_data)
+                #     print 'Fuck'
+
+        else:
+            # try:
+
+                center = self.testset[index][1:]
+                image = np.load(self.testset[index][0])
+                # print image.shape
+                ###################################
+                # Brats17_TCIA_430_1_flair.nii.gz #
+                # Brats17_TCIA_430_1_seg.nii.gz   #
+                # Brats17_TCIA_430_1_t1.nii.gz    #
+                # Brats17_TCIA_430_1_t1ce.nii.gz  #
+                # Brats17_TCIA_430_1_t2.nii.gz    #
+                ###################################
+                patch = self.get_patch(image,center,33,33,33)
+                ed, et, net = self.get_musk(image,center,9,9,9)
+                return torch.FloatTensor(patch), torch.FloatTensor(ed), torch.FloatTensor(et), torch.FloatTensor(net)
+
+            # except:
+            #     index = (index + 1) % len(self.testset)
+            #     print 'Fuck'
+
+    def __len__(self):
+        if self.train:
+            return len(self.trainset)
+        else:
+            return len(self.testset)
+
+
+    
+
+# # dataset = BRATSDATA('/mnt/disk1/dat/lchen63/spie', train=True)
+# dataset = BRATSDATA('/media/lele/DATA/spie', train=True)
+
+# data_loader = DataLoader(dataset,
+#                               batch_size=1,
+#                               num_workers=4,
+#                               shuffle=True, drop_last=True)
 # data_iter = iter(data_loader)
 # data_iter.next()
-print len(data_loader)
+# # print len(data_loader)
+# for i,gg in enumerate(data_loader):
+#     # print gg
+#     continue
