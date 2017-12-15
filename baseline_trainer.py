@@ -135,7 +135,8 @@ class Trainer():
                     print("[{}/{}][{}/{}]  ed_bg: {:.4f}, ed_iou: {:.4f}, et_bg: {:.4f},et_iou: {:.4f}, net_bg: {:.4f}, net_iou: {:.4f}"
                           .format(epoch+1, config.max_epochs,
                                   step+1, num_steps_per_epoch, _ed_iou[0], _ed_iou[1] , _et_iou[0], _et_iou[1], _net_iou[0], _net_iou[1]))
-                    
+                if step == 200:
+                    break
             if epoch % 1 == 0:
                 loss = 0
                 ed_acc = 0
@@ -146,7 +147,7 @@ class Trainer():
                 net_loss_average = 0
                 for step, (patch, ed, et, net) in enumerate(self.evaluation_loader):
                     t1 = time.time()
-
+                    patch, ed, et, net = patch.float(), ed.float(), et.float(), net.float()
 
                     if config.cuda:
                         patch = Variable(patch).cuda()
