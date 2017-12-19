@@ -25,16 +25,21 @@ def parse_args():
                         default=True)
     parser.add_argument("--dataset_dir",
                         type=str,
-                        # default="/mnt/disk1/dat/lchen63/grid/data/pickle/")
-                        default = '/media/lele/DATA/spie')
+                        default="/mnt/disk1/dat/lchen63/spie/")
+                        # default = '/media/lele/DATA/spie')
     parser.add_argument("--model_dir",
                         type=str,
-                        # default="/mnt/disk1/dat/lchen63/grid/model/")
-                        default='/media/lele/DATA/spie/model')
+                        default="/mnt/disk1/dat/lchen63/spie/model/")
+                        # default='/media/lele/DATA/spie/model')
+    parser.add_argument("--out",
+                        type=str,
+                        default="/mnt/disk1/dat/lchen63/spie/out/")
+                        # default='/media/lele/DATA/spie/out')
     
     parser.add_argument("--log_dir",
                         type=str,
-                        default="/media/lele/DATA/spie/log/")
+                        default = '/mnt/disk1/dat/lchen63/spie/log/')
+                        # default="/media/lele/DATA/spie/log/")
     parser.add_argument("--model_number",
                         type=str,
                         default='baseline')

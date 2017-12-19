@@ -91,12 +91,7 @@ class BRATSDATA(data.Dataset):
 
 
 
-
-
-
-
-
-        return ed, et, net
+        return  np.expand_dims(ed,axis= 0), np.expand_dims(et,axis= 0), np.expand_dims(net,axis= 0),np.expand_dims(vox,axis= 0)
 
     def __getitem__(self, index):
         # In training phase, it return real_image, wrong_image, text
@@ -115,8 +110,8 @@ class BRATSDATA(data.Dataset):
                     # Brats17_TCIA_430_1_t2.nii.gz    #
                     ###################################
                     patch = self.get_patch(image,center,33,33,33)
-                    ed, et, net = self.get_musk(image,center,9,9,9)
-                    return patch, ed, et, net
+                    ed, et, net, musk = self.get_musk(image,center,9,9,9)
+                    return patch, ed, et,  net 
 
                 # except:
                 #     index = (index + 1) % len(self.train_data)
@@ -136,8 +131,8 @@ class BRATSDATA(data.Dataset):
                 # Brats17_TCIA_430_1_t2.nii.gz    #
                 ###################################
                 patch = self.get_patch(image,center,33,33,33)
-                ed, et, net = self.get_musk(image,center,9,9,9)
-                return patch, ed, et, net
+                ed, et, net, musk  = self.get_musk(image,center,9,9,9)
+                return patch, ed, et,  net 
 
             # except:
             #     index = (index + 1) % len(self.testset)

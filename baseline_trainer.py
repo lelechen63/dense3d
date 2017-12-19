@@ -8,19 +8,54 @@ import torchvision
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 import numpy as np
+import os.path as osp
 from dataset import  BRATSDATA 
 from network import HieNet
 from tensorboard_logger import configure, log_value
-from utils import AverageMeter
+# from utils import AverageMeter
+import torch.nn.functional as F
+import datetime
+import pytz
+
+
+def _fast_hist(label_true, label_pred, n_class):
+    mask = (label_true >= 0) & (label_true < n_class)
+    hist = np.bincount(
+        n_class * label_true[mask].astype(int) +
+        label_pred[mask], minlength=n_class ** 2).reshape(n_class, n_class)
+    return hist
+
+
+def label_accuracy_score(label_trues, label_preds, n_class):
+    """Returns accuracy score evaluation result.
+      - overall accuracy
+      - mean accuracy
+      - mean IU
+      - fwavacc
+    """
+    hist = np.zeros((n_class, n_class))
+    for lt, lp in zip(label_trues, label_preds):
+        hist += _fast_hist(lt.flatten(), lp.flatten(), n_class)
+    acc = np.diag(hist).sum() / hist.sum()
+    acc_cls = np.diag(hist) / hist.sum(axis=1)
+    acc_cls = np.nanmean(acc_cls)
+    iu = np.diag(hist) / (hist.sum(axis=1) + hist.sum(axis=0) - np.diag(hist))
+    mean_iu = np.nanmean(iu)
+    freq = hist.sum(axis=1) / hist.sum()
+    fwavacc = (freq[freq > 0] * iu[freq > 0]).sum()
+    return acc, acc_cls, mean_iu, fwavacc
+
+
 class Trainer():
     def __init__(self, config):
         self.network = HieNet(config.cuda)
 
-        self.AverageMeter = AverageMeter()
+        # self.AverageMeter = AverageMeter()
         print(self.network)
         self.bce_loss_fn = nn.BCELoss()
         self.l1_loss_fn =  nn.L1Loss()
         self.mse_loss_fn = nn.MSELoss()
+
         self.lr = config.lr
 
         self.opt = torch.optim.Adam(self.network.parameters(), lr=self.lr , weight_decay=1e-4)#, betas=(config.beta1, config.beta2))
@@ -73,6 +108,19 @@ class Trainer():
             self.start_epoch = config.start_epoch
             self.load(config.pretrained_dir, config.pretrained_epoch)
 
+    def get_musk(self, ed , et, net ):
+       
+        vox = np.copy(net)
+
+       
+
+        vox[np.where(ed[:,:, :, :] != 0)] = 2
+
+        vox[np.where( et[:,:, :, :] != 0)] = 4  
+
+        return  vox
+
+
     def fit(self):
         config = self.config
         configure("{}".format(config.log_dir), flush_secs=5)
@@ -83,10 +131,12 @@ class Trainer():
 
         for epoch in range(self.start_epoch, config.max_epochs):
             self.adjust_learning_rate(self.opt,epoch)
+            self.network.train()
             for step, (patch, ed, et, net) in enumerate(self.data_loader):
                 
                 patch, ed, et, net = patch.float(), ed.float(), et.float(), net.float()#, torch.FloatTensor(ed), torch.FloatTensor(et), torch.FloatTensor(net)
-                t1 = time.time()
+                timestamp_start = \
+                    datetime.datetime.now(pytz.timezone('US/Eastern'))
 
 
                 if config.cuda:
@@ -106,38 +156,56 @@ class Trainer():
 
                 f_ed, f_et, f_net = self.network(patch)
                 loss = 0
+               
 
                 ed_loss  = self.bce_loss_fn(f_ed,ed)
                 et_loss  = self.bce_loss_fn(f_et,et)
                 net_loss = self.bce_loss_fn(f_net,net)
 
                 loss = ed_loss + et_loss + net_loss
+
+                loss /= len(patch)
+                if np.isnan(float(loss.data[0])):
+                    raise ValueError('loss is nan while training')
                 loss.backward()
                 self.opt.step()
                 self.network.zero_grad()
 
-                t2 = time.time()
+                iteration = step + epoch * len(self.data_loader)
 
-                if (step+1) % 1 == 50 or (step+1) == num_steps_per_epoch:
-                    steps_remain = num_steps_per_epoch-step+1 + \
-                        (config.max_epochs-epoch+1)*num_steps_per_epoch
-                    eta = int((t2-t1)*steps_remain)
 
-                    print("[{}/{}][{}/{}] loss: {:.4f}, ed_loss: {:.4f},et_loss: {:.4f},net_loss: {:.4f}, ETA: {} second"
-                          .format(epoch+1, config.max_epochs,
-                                  step+1, num_steps_per_epoch, loss.data[0], ed_loss.data[0], et_loss.data[0], net_loss.data[0],  eta))
-                    log_value('training_loss',loss.data[0] , step + num_steps_per_epoch * epoch)
-                if (step ) % (num_steps_per_epoch/1000) == 0 :
-                    _ed_iou = self.dice_coef_np(ed.data.cpu().numpy(), f_ed.data.cpu().numpy(),2)
-                    _et_iou = self.dice_coef_np(et.data.cpu().numpy(), f_et.data.cpu().numpy(),2)
-                    _net_iou = self.dice_coef_np(net.data.cpu().numpy(), f_net.data.cpu().numpy(),2)
+                metrics = []
+                ed_lbl_pred = f_ed.data.max(1)[1].cpu().numpy()[:, :, :]
+                ed_lbl_true = ed.data.cpu().numpy()
 
-                    print("[{}/{}][{}/{}]  ed_bg: {:.4f}, ed_iou: {:.4f}, et_bg: {:.4f},et_iou: {:.4f}, net_bg: {:.4f}, net_iou: {:.4f}"
-                          .format(epoch+1, config.max_epochs,
-                                  step+1, num_steps_per_epoch, _ed_iou[0], _ed_iou[1] , _et_iou[0], _et_iou[1], _net_iou[0], _net_iou[1]))
-                if step == 200:
-                    break
+                et_lbl_pred = f_et.data.max(1)[1].cpu().numpy()[:, :, :]
+                et_lbl_true = et.data.cpu().numpy()
+                net_lbl_pred = f_net.data.max(1)[1].cpu().numpy()[:, :, :]
+                net_lbl_true = net.data.cpu().numpy()
+
+                lbl_true = self.get_musk(ed_lbl_true,et_lbl_true,net_lbl_true)
+                lbl_pred = self.get_musk(ed_lbl_pred,et_lbl_pred,net_lbl_pred)
+
+
+                for lt, lp in zip(lbl_true, lbl_pred):
+                    acc, acc_cls, mean_iu, fwavacc = \
+                        label_accuracy_score(
+                            [lt], [lp], n_class=5)
+                    metrics.append((acc, acc_cls, mean_iu, fwavacc))
+                metrics = np.mean(metrics, axis=0)
+
+                with open(osp.join(config.log_dir, 'log.csv'), 'a') as f:
+                    elapsed_time = (
+                        datetime.datetime.now(pytz.timezone('US/Eastern')) -
+                        self.timestamp_start).total_seconds()
+                    log = [epoch, iteration] + [loss.data[0]] + \
+                        metrics.tolist() + [''] * 5 + [elapsed_time]
+                    log = map(str, log)
+                    f.write(','.join(log) + '\n')
+
+                    
             if epoch % 1 == 0:
+                self.network.eval()
                 loss = 0
                 ed_acc = 0
                 et_acc = 0
@@ -146,7 +214,8 @@ class Trainer():
                 et_loss_average = 0
                 net_loss_average = 0
                 for step, (patch, ed, et, net) in enumerate(self.evaluation_loader):
-                    t1 = time.time()
+                    self.timestamp_start = \
+                        datetime.datetime.now(pytz.timezone('US/Eastern'))
                     patch, ed, et, net = patch.float(), ed.float(), et.float(), net.float()
 
                     if config.cuda:
@@ -166,65 +235,51 @@ class Trainer():
 
                     f_ed, f_et, f_net = self.network(patch)
 
-                    # ed_prec = self.accuracy(f_ed,ed)
-                    # et_prec = self.accuracy(f_et,et)
-                    # net_prec =self.accuracy(f_net,net)
-
-
+                
                     ed_loss  = self.bce_loss_fn(f_ed,ed)
                     et_loss  = self.bce_loss_fn(f_et,et)
                     net_loss = self.bce_loss_fn(f_net,net)
-
-                    loss += ed_loss + et_loss + net_loss
-                    ed_loss_average += ed_loss
-                    et_loss_average += et_loss
-                    net_loss_average += net_loss
-
-                    _ed_iou = self.dice_coef_np(ed.cpu().data.numpy(), f_ed.data.cpu().numpy(),2)
-                    _et_iou = self.dice_coef_np(et.cpu().data.numpy(), f_et.data.cpu().numpy(),2)
-                    _net_iou = self.dice_coef_np(net.cpu().data.numpy(), f_net.data.cpu().numpy(),2)
-
-                    ed_acc += _ed_iou
-                    et_acc += _et_iou
-                    net_acc += _net_iou
-
-                loss = loss/step
-                ed_acc = ed_acc/step
-                et_acc = et_acc/step
-                net_acc = net_acc/step
-
-
-                ed_loss_average = ed_loss_average/step
-                et_loss_average = et_loss_average/step
-                net_loss_average = net_loss_average/step
-                print '==================================Evaluation========================================================'
-                print("[{}/{}][{}/{}] loss: {:.4f}, ed_loss: {:.4f},et_loss: {:.4f},net_loss: {:.4f}"
-                          .format(epoch+1, config.max_epochs,
-                                  step+1, num_steps_per_epoch, loss.data[0], ed_loss.data[0], et_loss.data[0], net_loss.data[0]))
+                    if np.isnan(float(ed_loss.data[0])) or np.isnan(float(et_loss.data[0])) or np.isnan(float(net_loss.data[0])):
+                        raise ValueError('loss is nan while validating')
+                    loss += float(ed_loss.data[0]) / len(patch) + float(et_loss.data[0]) / len(patch) + float(net_loss.data[0]) / len(patch)
+                    
                 
-                print("[{}/{}][{}/{}]  ed_bg: {:.4f}, ed_iou: {:.4f}, et_bg: {:.4f},et_iou: {:.4f}, net_bg: {:.4f}, net_iou: {:.4f}"
-                          .format(epoch+1, config.max_epochs,
-                                  step+1, num_steps_per_epoch, _ed_iou[0], _ed_iou[1] , _et_iou[0], _et_iou[1], _net_iou[0], _net_iou[1]))
-
-                # log_value('evaluation_loss',loss.data[0] , step + num_steps_per_epoch * epoch)
 
 
+                    metrics = []
+                    ed_lbl_pred = f_ed.data.max(1)[1].cpu().numpy()[:, :, :]
+                    ed_lbl_true = ed.data.cpu().numpy()
+
+                    et_lbl_pred = f_et.data.max(1)[1].cpu().numpy()[:, :, :]
+                    et_lbl_true = et.data.cpu().numpy()
+                    net_lbl_pred = f_net.data.max(1)[1].cpu().numpy()[:, :, :]
+                    net_lbl_true = net.data.cpu().numpy()
+
+                    lbl_true = self.get_musk(ed_lbl_true,et_lbl_true,net_lbl_true)
+                    lbl_pred = self.get_musk(ed_lbl_pred,et_lbl_pred,net_lbl_pred)
+
+                    for lt, lp in zip(lbl_true, lbl_pred):
+                        acc, acc_cls, mean_iu, fwavacc = \
+                            label_accuracy_score(
+                                [lt], [lp], n_class=5)
+                        metrics.append((acc, acc_cls, mean_iu, fwavacc))
+                    metrics = np.mean(metrics, axis=0)
+
+                    with open(osp.join(config.log_dir, 'validation.csv'), 'a') as f:
+                        elapsed_time = (
+                            datetime.datetime.now(pytz.timezone('US/Eastern')) -
+                            timestamp_start).total_seconds()
+                        log = [epoch, iteration] + [loss] + \
+                            metrics.tolist() + [''] * 5 + [elapsed_time]
+                        log = map(str, log)
+                        f.write(','.join(log) + '\n')
+                torch.save(self.network,osp.join(self.model_dir,'checkpoint.pth'))
 
 
 
 
 
 
-                torch.save(self.network.state_dict(),
-                           "{}/HieNet{}.pth"
-                           .format(config.model_dir,epoch))
-
-    # def load(self, directory, epoch):
-    #     gen_path = os.path.join(directory, 'generator_{}.pth'.format(epoch))
-
-    #     self.generator.load_state_dict(torch.load(gen_path))
-
-    #     print("Load pretrained [{}, {}]".format(gen_path, disc_path))
 
     def adjust_learning_rate(self,optimizer, epoch):
         """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
@@ -232,26 +287,3 @@ class Trainer():
         for param_group in optimizer.state_dict()['param_groups']:
             param_group['lr'] = self.lr
 
-
-    def dice_coef_np(self, y_true, y_pred, num_classes):
-        """
-
-       :param y_true: sparse labels
-        :param y_pred: sparse labels
-        :param num_classes: number of classes
-        :return:
-        """
-        y_true = y_true.astype(int)
-        y_pred = y_pred.astype(int)
-        y_true = y_true.flatten()
-        y_true = self.one_hot(y_true, num_classes)
-        y_pred = y_pred.flatten()
-        y_pred = self.one_hot(y_pred, num_classes)
-        intersection = np.sum(y_true * y_pred, axis=0)
-        return (2. * intersection) / (np.sum(y_true, axis=0) + np.sum(y_pred, axis=0))
-
-
-    def one_hot(self, y, num_classees):
-        y_ = np.zeros([len(y), num_classees])
-        y_[np.arange(len(y)), y] = 1
-        return y_

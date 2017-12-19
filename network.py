@@ -178,10 +178,10 @@ class HieNet(nn.Module):
 
         t1_feature = torch.cat([t1_feature,t2_feature],1)
 
-        none_enhancing = self.t1_classifier(t1_feature)
+        net = self.t1_classifier(t1_feature)
 
 
-        return edema, enhancing_tumor, none_enhancing
+        return edema, enhancing_tumor, net
 
     def accuracy(self, y_pred, y_actual, topk=(1, )):
 	    """Computes the precision@k for the specified values of k"""
